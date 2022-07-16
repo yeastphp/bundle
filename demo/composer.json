@@ -1,0 +1,35 @@
+{
+  "name": "yeast/demo",
+  "description": "A demo application build with yeast",
+  "type": "project",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Yeast\\Demo\\": "src/"
+    }
+  },
+  "authors": [
+    {
+      "name": "eater",
+      "email": "=@eater.me"
+    }
+  ],
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "require": {
+    "yeast/yeast": "dev-main",
+    "yeast/http": "dev-main",
+    "yeast/twig": "dev-main",
+    "yeast/doctrine": "dev-main"
+  },
+  "require-dev": {
+    "phpstan/phpstan": "1.4.3",
+    "vimeo/psalm": "^4.19",
+    "php-pm/php-pm": "^2.3"
+  },
+  "config": {
+    "allow-plugins": {
+      "composer/package-versions-deprecated": true
+    }
+  }
+}

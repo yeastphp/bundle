@@ -1,0 +1,25 @@
+{
+  "name": "yeast/graphql",
+  "description": "GraphQL module for the Yeast framework",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Yeast\\Graphql\\": "src/"
+    }
+  },
+  "authors": [
+    {
+      "name": "eater",
+      "email": "=@eater.me"
+    }
+  ],
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "require": {
+    "yeast/yeast": "dev-main",
+    "yeast/http": "dev-main",
+    "yeast/cache": "dev-main",
+    "thecodingmachine/graphqlite": "^v5.0.1"
+  }
+}

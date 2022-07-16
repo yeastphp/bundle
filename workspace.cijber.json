@@ -1,0 +1,14 @@
+{
+  "name": "yeast",
+  "packages": [
+    "yeast",
+    "http",
+    "demo",
+    "loafpan",
+    "twig",
+    "doctrine",
+    "graphql",
+    "cache",
+    "roller"
+  ]
+}

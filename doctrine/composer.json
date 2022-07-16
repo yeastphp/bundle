@@ -1,0 +1,20 @@
+{
+  "name": "yeast/doctrine",
+  "require": {
+    "doctrine/orm": "^2.11.1",
+    "tedivm/stash": "^v0.16.0",
+    "yeast/yeast": "dev-main",
+    "yeast/loafpan": "*",
+    "yeast/cache": "dev-main"
+  },
+  "autoload": {
+    "psr-4": {
+      "Yeast\\": "src/"
+    },
+    "files": [
+      "src/home_cooking.php"
+    ]
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}

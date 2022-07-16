@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json-schema.org/draft/2020-12/schema",
+  "definitions": {
+    "Yeast.Config.YeastConfig": {
+      "type": "object",
+      "properties": {
+        "home-cooking": {
+          "description": "If yeast should enable home cooking options, which violate the PSR",
+          "type": "bool"
+        },
+        "lead-poisoning": {
+          "description": "If you would like to have lead poisoning",
+          "type": "bool"
+        }
+      }
+    }
+  },
+  "$ref": "#/definitions/Yeast.Config.YeastConfig"
+}

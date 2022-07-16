@@ -1,0 +1,18 @@
+{
+  "devDependencies": {
+    "parcel": "^2.3.2",
+    "punycode": "^2.1.1"
+  },
+  "dependencies": {
+    "graphiql": "^1.5.20",
+    "graphql": "^16.3.0",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "targets": {
+    "default": {
+      "source": "src/index.html",
+      "publicUrl": "/_module/graphql"
+    }
+  }
+}

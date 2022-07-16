@@ -1,0 +1,4 @@
+home-cooking: true
+modules:
+  - Yeast\Twig
+  - Yeast\Doctrine

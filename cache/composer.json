@@ -1,0 +1,19 @@
+{
+  "name": "yeast/cache",
+  "type": "library",
+  "require": {
+    "tedivm/stash": "^0",
+    "yeast/yeast": "dev-main"
+  },
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Yeast\\Cache\\": "src/"
+    },
+    "files": [
+      "src/functions.php"
+    ]
+  },
+  "prefer-stable": true,
+  "minimum-stability": "dev"
+}

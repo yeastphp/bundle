@@ -1,0 +1,41 @@
+{
+  "name": "yeast/http",
+  "description": "The http fact for yeast",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Yeast\\Http\\": "src/"
+    },
+    "classmap": [
+      "src/Phppm/bridge_injection.php"
+    ],
+    "files": [
+      "src/functions.php"
+    ]
+  },
+  "authors": [
+    {
+      "name": "eater",
+      "email": "=@eater.me"
+    }
+  ],
+  "prefer-stable": true,
+  "minimum-stability": "dev",
+  "require": {
+    "yeast/yeast": "dev-main",
+    "psr/http-message": "1.0.1",
+    "guzzlehttp/psr7": "^2.1",
+    "nyholm/psr7-server": "^1.0",
+    "laminas/laminas-httphandlerrunner": "^2.1",
+    "nikic/fast-route": "v0.8.0",
+    "php-di/invoker": "2.3.3",
+    "psr/http-server-middleware": "^1.0",
+    "fileeye/mimemap": "^1.2"
+  },
+  "require-dev": {
+    "phpstan/phpstan": "^1.4",
+    "jetbrains/phpstorm-attributes": "^1.0",
+    "php-pm/php-pm": "^2.3"
+  }
+}

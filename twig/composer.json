@@ -1,0 +1,26 @@
+{
+  "name": "yeast/twig",
+  "description": "The twig module for yeast",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "Yeast\\": "src/"
+    },
+    "files": [
+      "src/home_cooking.php"
+    ]
+  },
+  "authors": [
+    {
+      "name": "eater",
+      "email": "=@eater.me"
+    }
+  ],
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "require": {
+    "yeast/yeast": "dev-main",
+    "twig/twig": "^v1.44.6"
+  }
+}

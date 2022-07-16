@@ -1,0 +1,1 @@
+connection: 'sqlite:///%_meta.app-dir%/var/sqlite.db'

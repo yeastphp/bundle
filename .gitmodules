@@ -1,0 +1,3 @@
+[submodule "loafpan"]
+	path = loafpan
+	url = git@github.com:yeastphp/loafpan.git
