@@ -10,13 +10,13 @@ use Yeast\ModuleBase;
 #[Unit("The central configuration file of yeast.")]
 class YeastConfig {
     /**
-     * @var array<class-string<Module>>
+     * @var array<class-string<ModuleBase>>
      */
     public array $resolvedModules = [];
 
     /**
      * @param  string|null  $cacheDir
-     * @param  array<class-string<Module>>  $specifiedModules
+     * @param  array<class-string<ModuleBase>>  $specifiedModules
      */
     public function __construct(
       #[Field("Enable global and static functions for ease of use")]
@@ -29,7 +29,7 @@ class YeastConfig {
     }
 
     /**
-     * @return array<class-string<Module>>
+     * @return array<class-string<ModuleBase>>
      */
     public function getSpecifiedModules(): array {
         return $this->specifiedModules;

@@ -34,6 +34,13 @@ class HomeCooking {
         self::$enabled = true;
         self::$kernel  = $kernel;
 
+        /** @var class-string<ModuleBase> $module */
+        foreach ($kernel->getResolvedModules() as $module) {
+            if (($module)::HOME_COOKING !== null) {
+                includeFileOnce(($module)::HOME_COOKING);
+            }
+        }
+
         foreach ($kernel->getModules() as $module) {
             $module->enableHomeCooking();
         }

@@ -9,7 +9,8 @@ use Twig\Loader\FilesystemLoader;
 
 
 class Twig extends ModuleBase {
-    public const NAME = "twig";
+    public const NAME         = "twig";
+    public const HOME_COOKING = __DIR__ . '/home_cooking.php';
 
     public function __construct(private Environment $environment) {
     }
@@ -17,7 +18,7 @@ class Twig extends ModuleBase {
     public static function buildContainer(ContainerBuilder $builder, Kernel $kernel): void {
         $builder->addDefinitions(
           [
-            Environment::class => function(Container $container) {
+            Environment::class      => function(Container $container) {
                 $kernel = $container->get(Kernel::class);
 
                 return new Environment($container->get(FilesystemLoader::class), ['debug' => $kernel->isDebug(), 'cache' => $kernel->getCacheDir() . '/twig']);

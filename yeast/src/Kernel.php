@@ -20,6 +20,9 @@ use function DI\get;
 use function DI\value;
 
 
+/**
+ * The central kernel of yeast, controls loading of modules, configs and the container.
+ */
 final class Kernel {
     private Loafpan $loafpan;
     private YeastConfig $config;
@@ -31,6 +34,7 @@ final class Kernel {
     private Application $application;
     private Logger $logger;
     private ?Facet $currentFacet = null;
+    private ?string $currentFacetName = null;
     private Container $container;
     /** @var array<class-string<ModuleBase>,ModuleBase> */
     private array $modules = [];
@@ -51,14 +55,29 @@ final class Kernel {
     }
 
     /**
+     * Create a kernel for your application, and spawn a runtime for a facet.
+     *
+     * This is a shortcut for
+     * ```php
+     * Kernel::create($applicationName, $applicationDirectory)->runtime($facet)
+     * ```
+     *
+     * This is useful for e.g. http entry points or console entry points
+     *
      * @template A of Application
      * @template R of Runtime
      * @template F of Facet<R>
      *
-     * @param  class-string<A>  $application
-     * @param  class-string<F>  $facet
+     * @param  class-string<A>  $application  The main application class
+     * @param  class-string<F>  $facet  For which facet a runtime should be created
+     * @param  string  $applicationDirectory  The application root directory, with e.g. your vendor and src directories
+     * @param  ?string  $applicationNamespace  The namespace your application lives in, if null is used it will use the namespace your application class lives in
+     * @param  bool  $production  If this is production
      *
      * @return R
+     * @see Kernel::runtime
+     *
+     * @see Kernel::create
      */
     public static function run(string $application, string $facet, string $applicationDirectory = ".", ?string $applicationNamespace = null, bool $production = false): Runtime {
         $kernel             = Kernel::create($application, $applicationDirectory, $applicationNamespace);
@@ -67,6 +86,24 @@ final class Kernel {
         return $kernel->runtime($facet);
     }
 
+    /**
+     * Creates and prepares a new kernel for given application.
+     *
+     * This function will initiate the following steps:
+     * - Load config
+     * - Resolve modules to be used
+     * - Load the DI container
+     * - Load and boot modules
+     * - Load the application
+     *
+     * @template A of Application
+     *
+     * @param  class-string<A>  $application  The main application class, should extend the class \Yeast\Application
+     * @param  string  $applicationDirectory  The root directory of your app, where e.g. your vendor, config and src directory live
+     * @param  string|null  $applicationNamespace  The namespace in which your application lives, if null is given it uses the namespace of your application (e.g. in the case of the application \My\Demo\Application, it will use the namespace \My\Demo)
+     *
+     * @return Kernel
+     */
     public static function create(string $application, string $applicationDirectory, ?string $applicationNamespace = null): Kernel {
         if ($applicationNamespace === null) {
             $lastPos = strrpos($application, '\\');
@@ -90,18 +127,18 @@ final class Kernel {
         return $kernel;
     }
 
-    private function earlyBoot() {
+    private function earlyBoot(): void {
         $this->createDefaultLogger();
         $this->logger->debug('Changing working directory to ' . $this->applicationDir);
         chdir($this->applicationDir);
     }
 
-    private function createDefaultLogger() {
+    private function createDefaultLogger(): void {
         $this->logger = new Logger('kernel');
         $this->logger->pushHandler(new ErrorLogHandler());
     }
 
-    public function loadConfig() {
+    private function loadConfig(): void {
         $this->logger->debug('Loading config');
         $config = $this->loadConfigFile('yeast');
 
@@ -155,7 +192,7 @@ final class Kernel {
         return $this->applicationNamespace;
     }
 
-    private function resolveModules(string $application) {
+    private function resolveModules(string $application): void {
         $specifiedModules = $this->config->getSpecifiedModules();
         $wantedModules    = array_flip($specifiedModules);
         $resolvedModules  = [];
@@ -199,6 +236,12 @@ final class Kernel {
         $this->config->setResolvedModules(array_values($resolvedModules));
     }
 
+    /**
+     * @param  string  $name
+     * @param  array  $requestedBy
+     *
+     * @return class-string<ModuleBase>
+     */
     private function resolveModule(string $name, array $requestedBy): string {
         $expandedName = $name . "\\Module";
         /** @var class-string<ModuleBase> $className */
@@ -224,7 +267,7 @@ final class Kernel {
      *
      * @return void
      */
-    private function loadContainer(string $application) {
+    private function loadContainer(string $application): void {
         $this->logger->debug('Building container');
 
         $builder = new ContainerBuilder();
@@ -234,7 +277,6 @@ final class Kernel {
         }
 
         $builder->useAttributes(true);
-        $builder->useAnnotations(false);
         $builder->useAutowiring(true);
 
         if ($this->production) {
@@ -288,14 +330,20 @@ final class Kernel {
      *
      * @param  class-string<M>  $module
      *
-     * @return C
+     * @return C|null
      */
-    public function loadModuleConfig(string $module) {
+    public function loadModuleConfig(string $module): ?object {
         if (array_key_exists($module, $this->moduleConfigs)) {
             return $this->moduleConfigs[$module];
         }
 
-        $configClass  = ($module)::CONFIG;
+        $configClass = ($module)::CONFIG;
+        if ($configClass === null) {
+            $this->moduleConfigs[$module] = null;
+
+            return null;
+        }
+
         $friendlyName = ($module)::NAME;
 
         $configData           = $this->loadConfigFile('module/' . $friendlyName);
@@ -305,7 +353,7 @@ final class Kernel {
         return $this->moduleConfigs[$module] = $this->loafpan->expandVisitor($configClass, new ExpandingVisitor($configData, $configRoot));
     }
 
-    private function loadModules() {
+    private function loadModules(): void {
         foreach ($this->config->resolvedModules as $module) {
             if (($module)::hasBoot()) {
                 $this->module($module)->boot();
@@ -347,7 +395,7 @@ final class Kernel {
         return $this->modules[$module] = $this->container->get($module);
     }
 
-    private function enableHomeCooking() {
+    private function enableHomeCooking(): void {
         if ($this->config->isHomeCooking()) {
             HomeCooking::enable($this);
         }
@@ -360,44 +408,56 @@ final class Kernel {
      *
      * @return void
      */
-    private function loadApplication(string $application) {
+    private function loadApplication(string $application): void {
         $this->logger->debug('Loading application ' . $application);
         $this->application = $this->container->get($application);
     }
 
     /**
+     * Create a runtime for the given facet. This function fails if a different facet has already been used.
+     *
      * @template R of Runtime
      * @template F of Facet<R>
      *
      * @param  class-string<F>  $facet
      *
      * @return R
+     * @see Facet::runtime()
+     * @see Kernel::facet()
      */
     public function runtime(string $facet): Runtime {
         return $this->facet($facet)->runtime();
     }
 
     /**
+     * Returns a facet for this yeast application.
+     * If there's no facet for this kernel yet, a new one is created.
+     * When a facet already exists, it will either return the existing facet if it is the same as the requested facet. or throw an exception.
+     *
+     * Only one facet can be active in the span of application lifetime. (this is an artificial limitation and may be changed later.)
+     *
      * @template R of Runtime
      * @template F of Facet<R>
      *
-     * @param  class-string<F>  $facet
+     * @param  class-string<F>  $facet  The class name of the requested facet.
      *
      * @return F
+     * @see \Yeast\Facet
      */
     public function facet(string $facet): Facet {
-        if ( ! class_exists($facet)) {
-            throw new RuntimeException("Facet by name $facet couldn't be found");
-        }
-
         if ($this->currentFacet === null) {
+            if ( ! class_exists($facet)) {
+                throw new RuntimeException("Facet by name $facet couldn't be found");
+            }
+
             $this->logger->debug('Loading facet ' . $facet . ' for app');
-            $this->currentFacet = $this->container->get($facet);
+            $this->currentFacet     = $this->container->get($facet);
+            $this->currentFacetName = $facet;
 
             return $this->currentFacet;
         }
 
-        if (is_a($this->currentFacet, $facet)) {
+        if ($this->currentFacetName === $facet) {
             return $this->currentFacet;
         }
 
@@ -434,5 +494,14 @@ final class Kernel {
 
     private function getFacetConfig(string $name): array {
         return $this->loadConfigFile("facet/$name");
+    }
+
+    /**
+     * Returns all the modules that have been resolved to be loaded
+     *
+     * @return array<class-string<ModuleBase>>
+     */
+    public function getResolvedModules(): array {
+        return $this->config->getResolvedModules();
     }
 }

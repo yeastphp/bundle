@@ -17,8 +17,9 @@ use function DI\get;
 
 
 class Module extends ModuleBase {
-    public const CONFIG = HttpConfig::class;
-    public const NAME   = "http";
+    public const CONFIG       = HttpConfig::class;
+    public const NAME         = "http";
+    public const HOME_COOKING = __DIR__ . '/home_cooking.php';
 
     /**
      * @var Mount[]

@@ -48,6 +48,7 @@ final class Dispatcher {
     }
 
     public function handle(ServerRequestInterface $request): ResponseInterface {
+        $this->logger->info('HTTP: '. $request->getMethod() . ' ' . $request->getUri());
         [$result, $data] = $this->router->resolve($request->getMethod(), $request->getUri()->getPath());
 
         if ($result === \FastRoute\Dispatcher::FOUND) {

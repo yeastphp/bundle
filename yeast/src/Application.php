@@ -6,7 +6,7 @@ namespace Yeast;
 use DI\ContainerBuilder;
 
 
-abstract class Application implements AppInterface {
+abstract class Application {
     public function __construct(protected Kernel $kernel) {
     }
 

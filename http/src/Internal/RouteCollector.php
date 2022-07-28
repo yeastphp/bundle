@@ -30,9 +30,6 @@ use Yeast\Kernel;
 use function FastRoute\cachedDispatcher;
 
 
-/**
- * TODO: maybe create a java like service providers etc.?
- */
 class RouteCollector {
     private array $routes = [];
 

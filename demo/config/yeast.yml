@@ -1,4 +1,5 @@
 home-cooking: true
 modules:
+  - Yeast\Http
   - Yeast\Twig
   - Yeast\Doctrine

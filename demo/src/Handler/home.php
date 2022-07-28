@@ -7,6 +7,7 @@ use Yeast\Http\Attribute\Request\Query;
 use Yeast\Http\Attribute\Route;
 
 use function Yeast\Doctrine\HomeCooking\repo;
+use function Yeast\Http\HomeCooking\json;
 use function Yeast\Twig\HomeCooking\display;
 
 
@@ -16,4 +17,9 @@ function home(#[Query] string $user) {
 
     echo "Now let the template speak:<p>";
     display("gamers.html.twig", ['user' => $user]);
+}
+
+#[Route]
+function gibjson() {
+    json("gamer");
 }
