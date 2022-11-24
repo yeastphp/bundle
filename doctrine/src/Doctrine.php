@@ -19,8 +19,9 @@ use function DI\get;
 
 
 class Doctrine extends ModuleBase {
-    public const NAME   = "doctrine";
-    public const CONFIG = DoctrineConfig::class;
+    public const NAME         = "doctrine";
+    public const CONFIG       = DoctrineConfig::class;
+    public const HOME_COOKING = __DIR__ . '/home_cooking.php';
 
     public static function buildContainer(ContainerBuilder $builder, Kernel $kernel): void {
         $builder->addDefinitions(

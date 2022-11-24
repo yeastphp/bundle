@@ -10,10 +10,7 @@
   "autoload": {
     "psr-4": {
       "Yeast\\": "src/"
-    },
-    "files": [
-      "src/home_cooking.php"
-    ]
+    }
   },
   "minimum-stability": "dev",
   "prefer-stable": true

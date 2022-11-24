@@ -17,3 +17,4 @@ function controller(string $name, string|array $namespaces, string $prefix = "/"
 function files(string $name, string|array $directories, string $prefix = "/", bool $debugOnly = false): Mount {
     return mount($name, MountType::FILES, [], $prefix, $debugOnly, $directories);
 }
+
