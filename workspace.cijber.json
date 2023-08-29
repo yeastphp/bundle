@@ -9,6 +9,7 @@
     "doctrine",
     "graphql",
     "cache",
-    "roller"
+    "roller",
+    "svelte"
   ]
 }

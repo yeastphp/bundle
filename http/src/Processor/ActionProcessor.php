@@ -10,10 +10,10 @@ use Yeast\Http\Internal\Action;
  */
 interface ActionProcessor {
     /**
-     * @param  T  $attribute
+     * @param  T[]  $attribute
      * @param  Action  $action
      *
      * @return mixed
      */
-    function process(object $attribute, Action $action);
+    function process(array $attribute, Action $action);
 }

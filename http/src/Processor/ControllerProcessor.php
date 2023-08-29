@@ -6,12 +6,17 @@ use Yeast\Http\Attribute\Controller;
 use Yeast\Http\Internal\Action;
 
 
-interface ControllerProcessor {
+/**
+ * @template T
+ */
+interface ControllerProcessor
+{
     /**
+     * @param  T[]  $attributes
      * @param  Controller  $controller
      * @param  Action[]  $actions
      *
      * @return mixed
      */
-    public function process(Controller $controller, array $actions);
+    public function processController(array $attributes, Controller $controller, array $actions);
 }

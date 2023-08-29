@@ -8,11 +8,14 @@ use Yeast\ModuleBase;
 
 
 #[Unit("The central configuration file of yeast.")]
-class YeastConfig {
+class YeastConfig
+{
     /**
      * @var array<class-string<ModuleBase>>
      */
     public array $resolvedModules = [];
+
+    public ?object $app = null;
 
     /**
      * @param  string|null  $cacheDir
@@ -31,30 +34,36 @@ class YeastConfig {
     /**
      * @return array<class-string<ModuleBase>>
      */
-    public function getSpecifiedModules(): array {
+    public function getSpecifiedModules(): array
+    {
         return $this->specifiedModules;
     }
 
-    public function setResolvedModules(array $resolvedModules): void {
+    public function setResolvedModules(array $resolvedModules): void
+    {
         $this->resolvedModules = $resolvedModules;
     }
 
-    public function getResolvedModules(): array {
+    public function getResolvedModules(): array
+    {
         return $this->resolvedModules;
     }
 
-    public function getCacheDir(): ?string {
+    public function getCacheDir(): ?string
+    {
         return $this->cacheDir;
     }
 
     /**
      * @internal
      */
-    public function setCacheDir(?string $cacheDir): void {
+    public function setCacheDir(?string $cacheDir): void
+    {
         $this->cacheDir = $cacheDir;
     }
 
-    public function isHomeCooking(): bool {
+    public function isHomeCooking(): bool
+    {
         return $this->homeCooking;
     }
 }

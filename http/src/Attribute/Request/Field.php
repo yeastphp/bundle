@@ -21,7 +21,7 @@ class Field implements ParameterResolver {
     }
 
     public function resolve(ServerRequestInterface $request): mixed {
-        $params = $request->getQueryParams();
+        $params = $request->getParsedBody();
 
         if ($this->all) {
             return $params;

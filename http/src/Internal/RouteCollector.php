@@ -5,6 +5,7 @@ namespace Yeast\Http\Internal;
 use AppendIterator;
 use Closure;
 use DI\Container;
+use Iterator;
 use Psr\Log\LoggerInterface;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -12,11 +13,14 @@ use ReflectionClass;
 use ReflectionFunction;
 use ReflectionFunctionAbstract;
 use ReflectionMethod;
+use ReflectionNamedType;
 use RegexIterator;
 use Yeast\Http\Attribute\ActionAttribute;
 use Yeast\Http\Attribute\Controller;
 use Yeast\Http\Attribute\ControllerAttribute;
 use Yeast\Http\Attribute\Request\ParameterResolver;
+use Yeast\Http\Attribute\Request\RequestResolver;
+use Yeast\Http\Attribute\Request\RequestTargetResolver;
 use Yeast\Http\Attribute\Route;
 use Yeast\Http\Internal\Action\ControllerAction;
 use Yeast\Http\Internal\Action\FunctionAction;
@@ -30,7 +34,8 @@ use Yeast\Kernel;
 use function FastRoute\cachedDispatcher;
 
 
-class RouteCollector {
+class RouteCollector
+{
     private array $routes = [];
 
     private array $controllers = [];
@@ -40,32 +45,37 @@ class RouteCollector {
 
     private Closure $includeOnce;
 
-    public function __construct(private Kernel $kernel, private LoggerInterface $logger, private Container $container, private Module $module) {
-        $this->includeOnce = function(string $file) {
+    public function __construct(private Kernel $kernel, private LoggerInterface $logger, private Container $container, private Module $module)
+    {
+        $this->includeOnce = function (string $file) {
             $this->logger->debug('Force including ' . $file);
             include_once $file;
         };
     }
 
-    public function getRouteCacheFile(): string {
+    public function getRouteCacheFile(): string
+    {
         $cacheDir = $this->kernel->getCacheDir();
 
         return $cacheDir . '/router.cache.php';
     }
 
-    public function getActionCacheFile(): string {
+    public function getActionCacheFile(): string
+    {
         $cacheDir = $this->kernel->getCacheDir();
 
         return $cacheDir . '/action.cache.phps';
     }
 
-    public function getMountsCacheFile(): string {
+    public function getMountsCacheFile(): string
+    {
         $cacheDir = $this->kernel->getCacheDir();
 
         return $cacheDir . '/mounts.cache.txt';
     }
 
-    public function hasValidCache(): bool {
+    public function hasValidCache(): bool
+    {
         $routeCacheFile  = $this->getRouteCacheFile();
         $actionCacheFile = $this->getActionCacheFile();
         $mountsCacheFile = $this->getMountsCacheFile();
@@ -87,15 +97,22 @@ class RouteCollector {
         $lastCache = min(filemtime($actionCacheFile) ?: -1, filemtime($routeCacheFile) ?: -1);
 
         foreach ($mountCache['dirs'] as $directory) {
-            if (file_exists($directory) && (filemtime($directory) ?: 0) > $lastCache) {
+            if ( ! file_exists($directory) || (filemtime($directory) ?: 0) > $lastCache) {
                 return false;
+            }
+
+            foreach ($this->getDirectoryPhpIterator($directory) as $phpFile) {
+                if ((filemtime($phpFile) ?: 0) > $lastCache) {
+                    return false;
+                }
             }
         }
 
         return true;
     }
 
-    public function collect() {
+    public function collect()
+    {
         $this->logger->info('Collecting routes from attributes');
 
         foreach ($this->module->getMounts() as $mount) {
@@ -115,7 +132,8 @@ class RouteCollector {
         $this->writeCache();
     }
 
-    public function build(): Router {
+    public function build(): Router
+    {
         // If we have cache we don't have to collect because the callable in the cachedDispatcher function never gets called
         if ( ! $this->hasValidCache()) {
             $this->collect();
@@ -123,19 +141,20 @@ class RouteCollector {
 
         ['actions' => $actions, 'controllers' => $controllers, 'routes' => $routes] = unserialize(file_get_contents($this->getActionCacheFile()));
 
-        $dispatcher = cachedDispatcher(function(\FastRoute\RouteCollector $collector) {
+        $dispatcher = cachedDispatcher(function (\FastRoute\RouteCollector $collector) {
             foreach ($this->routes as $id => [$route, $action]) {
                 $collector->addRoute($route->method, $route->resolveFullPath(), [$id, $action->__toString()]);
             }
         }, [
-             'cacheFile' => $this->getRouteCacheFile(),
-           ]);
+          'cacheFile' => $this->getRouteCacheFile(),
+        ]);
 
         return new Router($dispatcher, $actions, $controllers, $routes);
     }
 
 
-    public function collectControllers(Mount $mount) {
+    public function collectControllers(Mount $mount)
+    {
         $phpFiles = $this->getMountPhpIterator($mount);
 
         foreach ($phpFiles as $phpFile) {
@@ -231,14 +250,13 @@ class RouteCollector {
             foreach ($processors as $attribute => $processor) {
                 /** @var ControllerProcessor $proc */
                 $proc = $this->getProcessor($processor);
-                foreach ($controller->attributes[$attribute] as $attribute) {
-                    $proc->process($attribute, $actions);
-                }
+                $proc->processController($controller->attributes[$attribute], $controller, $actions);
             }
         }
     }
 
-    private function getMountPhpIterator(Mount $mount): \Iterator {
+    private function getMountPhpIterator(Mount $mount): Iterator
+    {
         $mount->resolveDirectories();
         $append = new AppendIterator();
 
@@ -247,17 +265,23 @@ class RouteCollector {
                 continue;
             }
 
-            $dir   = new RecursiveDirectoryIterator($directory);
-            $iter  = new RecursiveIteratorIterator($dir);
-            $regex = new RegexIterator($iter, '/^.+\.php$/i');
 
-            $append->append($regex);
+            $append->append($this->getDirectoryPhpIterator($directory));
         }
 
         return $append;
     }
 
-    public function collectHandlers(Mount $mount) {
+    private function getDirectoryPhpIterator(string $directory): Iterator
+    {
+        $dir  = new RecursiveDirectoryIterator($directory);
+        $iter = new RecursiveIteratorIterator($dir);
+
+        return new RegexIterator($iter, '/^.+\.php$/i');
+    }
+
+    public function collectHandlers(Mount $mount)
+    {
         $this->logger->debug('Adding function actions');
 
         $phpFiles = $this->getMountPhpIterator($mount);
@@ -314,7 +338,8 @@ class RouteCollector {
         }
     }
 
-    private function addRoute(Mount $mount, Route $route, Action $action) {
+    private function addRoute(Mount $mount, Route $route, Action $action)
+    {
         if ($route->path === null) {
             $route->path = strtolower($action->getName());
         }
@@ -327,7 +352,8 @@ class RouteCollector {
         $action->routes[] = $action;
     }
 
-    private function getProcessor(string $processor) {
+    private function getProcessor(string $processor)
+    {
         if ( ! isset($this->processors[$processor])) {
             $this->processors[$processor] = $this->container->get($processor);
         }
@@ -335,7 +361,8 @@ class RouteCollector {
         return $this->processors[$processor];
     }
 
-    private function writeCache() {
+    private function writeCache()
+    {
         $routes = [];
 
         foreach ($this->routes as $id => [$route, $_]) {
@@ -362,8 +389,10 @@ class RouteCollector {
         file_put_contents($this->getMountsCacheFile(), serialize(['hash' => $this->module->getMountHash(), 'dirs' => array_keys($dirs)]));
     }
 
-    private function setActionAttributes(ReflectionFunctionAbstract $reflection, Action $action): void {
+    private function setActionAttributes(ReflectionFunctionAbstract $reflection, Action $action): void
+    {
         $customAttr = $reflection->getAttributes();
+        $processors = [];
 
         foreach ($customAttr as $attr) {
             $attrReflection = new ReflectionClass($attr->getName());
@@ -374,19 +403,24 @@ class RouteCollector {
 
             /** @var ActionAttribute $actionAttribute */
             $actionAttribute = $actionAttr[0]->newInstance();
+            $attrName        = $attr->getName();
 
-            if ( ! isset($action->attributes[$attr->getName()])) {
-                $action->attributes[$attr->getName()] = [];
+            if ( ! isset($action->attributes[$attrName])) {
+                $action->attributes[$attrName] = [];
             }
 
-            $attributeObject                        = $attr->newInstance();
-            $action->attributes[$attr->getName()][] = $attributeObject;
-
-            if ($actionAttribute->processor !== null) {
-                /** @var ActionProcessor $processor */
-                $processor = $this->getProcessor($actionAttribute->processor);
-                $processor->process($attributeObject, $action);
+            if ($actionAttribute->processor !== null && ! isset($processors[$attrName])) {
+                $processors[$attrName] = $actionAttribute->processor;
             }
+
+            $attributeObject                 = $attr->newInstance();
+            $action->attributes[$attrName][] = $attributeObject;
+        }
+
+        foreach ($processors as $attrName => $processorName) {
+            /** @var ActionProcessor $processor */
+            $processor = $this->getProcessor($processorName);
+            $processor->process($action->attributes[$attrName], $action);
         }
 
         foreach ($reflection->getParameters() as $parameter) {
@@ -399,6 +433,29 @@ class RouteCollector {
                     $action->parameters[$parameter->getName()] = $param;
                     continue 2;
                 }
+            }
+
+            $parameterType = $parameter->getType();
+            if ($parameterType instanceof ReflectionNamedType && ! $parameterType->isBuiltin()) {
+                $parameterClass = new ReflectionClass($parameterType->getName());
+
+                $resolver = $parameterClass->getAttributes(RequestTargetResolver::class);
+                if (count($resolver) !== 1) {
+                    continue;
+                }
+                /** @var RequestTargetResolver $resolver */
+                $resolver = $resolver[0]->newInstance();
+
+                $resolverClass = $resolver->resolver ?? $parameterType->getName();
+
+                if ( ! class_implements($resolverClass, RequestResolver::class)) {
+                    throw new \RuntimeException($parameterType->getName() . ' marked as a RequestTargetResolver but assigned resolver class (' . $resolverClass . ') doesn\'t implement ' . ParameterResolver::class);
+                }
+
+                $param = ($resolverClass)::build($parameterType->getName());
+                $param->setParameterName($parameter->getName());
+
+                $action->parameters[$parameter->getName()] = $param;
             }
         }
     }

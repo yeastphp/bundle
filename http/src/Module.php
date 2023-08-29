@@ -7,6 +7,7 @@ use DI\Container;
 use DI\ContainerBuilder;
 use GuzzleHttp\Psr7\HttpFactory;
 use Monolog\Logger;
+use Psr\Http\Server\MiddlewareInterface;
 use Yeast\Http\Config\HttpConfig;
 use Yeast\Kernel;
 use Yeast\ModuleBase;
@@ -16,7 +17,8 @@ use function DI\autowire;
 use function DI\get;
 
 
-class Module extends ModuleBase {
+class Module extends ModuleBase
+{
     public const CONFIG       = HttpConfig::class;
     public const NAME         = "http";
     public const HOME_COOKING = __DIR__ . '/home_cooking.php';
@@ -26,6 +28,11 @@ class Module extends ModuleBase {
      */
     public array $mounts = [];
 
+    /**
+     * @var class-string<MiddlewareInterface>[]
+     */
+    public array $globalMiddleware = [];
+
     public string $mountHash = "";
 
     /**
@@ -34,7 +41,13 @@ class Module extends ModuleBase {
      * @return void
      * @noinspection PhpDocSignatureInspection
      */
-    public function loadConfig(object|null $config): void {
+    public function loadConfig(object|null $config): void
+    {
+        $this->globalMiddleware = $this->container->get('yeast.http.middleware');
+
+        $this->globalMiddleware = array_merge($this->globalMiddleware, $config->middleware);
+        $this->globalMiddleware = array_unique($this->globalMiddleware);
+
         /** @var Mount[] $mounts */
         $mounts        = $this->container->get('yeast.http.mounts');
         $enabledMounts = [];
@@ -78,20 +91,23 @@ class Module extends ModuleBase {
         $this->mounts    = $enabledMounts;
     }
 
-    public function __construct(private Container $container, private Kernel $kernel, #[Inject("logger.http")] private Logger $logger) {
+    public function __construct(private Container $container, private Kernel $kernel, #[Inject("logger.http")] private Logger $logger)
+    {
     }
 
-    public static function buildContainer(ContainerBuilder $builder, Kernel $kernel): void {
+    public static function buildContainer(ContainerBuilder $builder, Kernel $kernel): void
+    {
         $builder->addDefinitions(
           [
-            'yeast.http.mounts'  => add(
+            'yeast.http.mounts'     => add(
               [
                 handler('_app', $kernel->getApplicationNamespace() . '\\Handler'),
                 controller('_app', $kernel->getApplicationNamespace() . '\\Controller'),
               ],
             ),
-            HttpFactory::class   => autowire(),
-            'yeast.http.factory' => get(HttpFactory::class),
+            'yeast.http.middleware' => add([]),
+            HttpFactory::class      => autowire(),
+            'yeast.http.factory'    => get(HttpFactory::class),
           ]
         );
 
@@ -108,11 +124,13 @@ class Module extends ModuleBase {
     /**
      * @return Mount[]
      */
-    public function getMounts(): array {
+    public function getMounts(): array
+    {
         return $this->mounts;
     }
 
-    public function getMountHash(): string {
+    public function getMountHash(): string
+    {
         return $this->mountHash;
     }
 }

@@ -10,9 +10,8 @@ use Psr\Http\Server\MiddlewareInterface;
 class Controller {
     public string $prefix;
     public array $attributes = [];
-    public array $middlewares = [];
 
-    public function __construct(?string $prefix = null) {
+    public function __construct(?string $prefix = null, public array $middleware = []) {
         $this->prefix = $prefix ? '/' . (ltrim($prefix, '/')) : "";
     }
 
@@ -30,10 +29,10 @@ class Controller {
      * @return void
      */
     public function addMiddleware(string $middleware): void {
-        if (in_array($middleware, $this->middlewares)) {
+        if (in_array($middleware, $this->middleware)) {
             return;
         }
 
-        $this->middlewares[] = $middleware;
+        $this->middleware[] = $middleware;
     }
 }

@@ -10,7 +10,10 @@
   "autoload": {
     "psr-4": {
       "Yeast\\": "src/"
-    }
+    },
+    "files": [
+      "src/functions.php"
+    ]
   },
   "minimum-stability": "dev",
   "prefer-stable": true

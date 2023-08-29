@@ -23,7 +23,8 @@ use function DI\value;
 /**
  * The central kernel of yeast, controls loading of modules, configs and the container.
  */
-final class Kernel {
+final class Kernel
+{
     private Loafpan $loafpan;
     private YeastConfig $config;
     private array $configArray;
@@ -44,7 +45,8 @@ final class Kernel {
 
     private bool $production = false;
 
-    private function __construct(string $applicationDir, private string $applicationNamespace) {
+    private function __construct(string $applicationDir, private string $applicationNamespace)
+    {
         $appDir = realpath($applicationDir);
         if ($appDir === false) {
             throw new RuntimeException("Application directory by " . $applicationDir . " does not exist");
@@ -79,7 +81,8 @@ final class Kernel {
      *
      * @see Kernel::create
      */
-    public static function run(string $application, string $facet, string $applicationDirectory = ".", ?string $applicationNamespace = null, bool $production = false): Runtime {
+    public static function run(string $application, string $facet, string $applicationDirectory = ".", ?string $applicationNamespace = null, bool $production = false): Runtime
+    {
         $kernel             = Kernel::create($application, $applicationDirectory, $applicationNamespace);
         $kernel->production = $production;
 
@@ -104,7 +107,8 @@ final class Kernel {
      *
      * @return Kernel
      */
-    public static function create(string $application, string $applicationDirectory, ?string $applicationNamespace = null): Kernel {
+    public static function create(string $application, string $applicationDirectory, ?string $applicationNamespace = null): Kernel
+    {
         if ($applicationNamespace === null) {
             $lastPos = strrpos($application, '\\');
 
@@ -117,7 +121,7 @@ final class Kernel {
 
         $kernel = new Kernel($applicationDirectory, $applicationNamespace);
         $kernel->earlyBoot();
-        $kernel->loadConfig();
+        $kernel->loadConfig($application);
         $kernel->resolveModules($application);
         $kernel->loadContainer($application);
         $kernel->loadModules();
@@ -127,20 +131,27 @@ final class Kernel {
         return $kernel;
     }
 
-    private function earlyBoot(): void {
+    private function earlyBoot(): void
+    {
         $this->createDefaultLogger();
         $this->logger->debug('Changing working directory to ' . $this->applicationDir);
         chdir($this->applicationDir);
     }
 
-    private function createDefaultLogger(): void {
+    private function createDefaultLogger(): void
+    {
         $this->logger = new Logger('kernel');
         $this->logger->pushHandler(new ErrorLogHandler());
     }
 
-    private function loadConfig(): void {
+    /**
+     * @param  class-string<Application>  $application
+     */
+    private function loadConfig(string $application): void
+    {
         $this->logger->debug('Loading config');
-        $config = $this->loadConfigFile('yeast');
+        $config    = $this->loadConfigFile('yeast');
+        $appConfig = $this->loadConfigFile('app');
 
         $cacheDir = $this->getApplicationDir() . '/var/cache';
 
@@ -155,20 +166,27 @@ final class Kernel {
           'app-dir' => $this->getApplicationDir(),
         ];
 
+        $config['app']  = $appConfig;
         $config['_meta'] = $meta;
 
         if ( ! is_dir($cacheDir . '/loafpan')) {
             mkdir($cacheDir . '/loafpan', recursive: true);
         }
 
-        $this->loafpan     = new Loafpan($cacheDir . '/loafpan', casing: 'kebab-case');
-        $this->config      = $this->loafpan->expandVisitor(YeastConfig::class, new ExpandingVisitor($config, $config));
+        $this->loafpan = new Loafpan($cacheDir . '/loafpan', casing: 'kebab-case');
+
+        $visitor = new ExpandingVisitor($config, $config);
+
+        $this->config      = $this->loafpan->expandVisitor(YeastConfig::class, $visitor);
+        $this->config->app = $this->loafpan->expandVisitor(($application)::CONFIG, new ExpandingVisitor($appConfig, $config));
+
         $this->configArray = $config;
         $this->config->setCacheDir($cacheDir);
         $this->logger->debug('Loaded config');
     }
 
-    private function loadConfigFile(string $path): mixed {
+    private function loadConfigFile(string $path): mixed
+    {
         $fullPath = $this->configDir . '/' . $path;
 
         if (file_exists($fullPath . '.json')) {
@@ -178,21 +196,24 @@ final class Kernel {
         }
 
         if (file_exists($fullPath . '.yml')) {
-            return Yaml::parseFile($fullPath . '.yml');
+            return Yaml::parseFile($fullPath . '.yml') ?: [];
         }
 
         return [];
     }
 
-    public function getApplicationDir(): string {
+    public function getApplicationDir(): string
+    {
         return $this->applicationDir;
     }
 
-    public function getApplicationNamespace(): string {
+    public function getApplicationNamespace(): string
+    {
         return $this->applicationNamespace;
     }
 
-    private function resolveModules(string $application): void {
+    private function resolveModules(string $application): void
+    {
         $specifiedModules = $this->config->getSpecifiedModules();
         $wantedModules    = array_flip($specifiedModules);
         $resolvedModules  = [];
@@ -242,7 +263,8 @@ final class Kernel {
      *
      * @return class-string<ModuleBase>
      */
-    private function resolveModule(string $name, array $requestedBy): string {
+    private function resolveModule(string $name, array $requestedBy): string
+    {
         $expandedName = $name . "\\Module";
         /** @var class-string<ModuleBase> $className */
         $className = $name;
@@ -267,7 +289,8 @@ final class Kernel {
      *
      * @return void
      */
-    private function loadContainer(string $application): void {
+    private function loadContainer(string $application): void
+    {
         $this->logger->debug('Building container');
 
         $builder = new ContainerBuilder();
@@ -292,7 +315,7 @@ final class Kernel {
             Loafpan::class         => value($this->loafpan),
             LoggerInterface::class => get(Logger::class),
             Logger::class          => value($this->logger),
-            'logger.*'             => function(Container $container, Definition $definition) {
+            'logger.*'             => function (Container $container, Definition $definition) {
                 return $container->get(Logger::class)->withName(substr($definition->getName(), 7));
             },
           ]
@@ -307,7 +330,7 @@ final class Kernel {
             if (($module)::CONFIG !== null) {
                 $moduleName = ($module)::NAME;
                 $modules[$module]->methodParameter('loadConfig', 0, get('module.' . $moduleName . '.config'));
-                $modules['module.' . $moduleName . '.config'] = factory(function(Container $container) use ($module) {
+                $modules['module.' . $moduleName . '.config'] = factory(function (Container $container) use ($module) {
                     $kernel = $container->get(Kernel::class);
 
                     return $kernel->loadModuleConfig($module);
@@ -332,7 +355,8 @@ final class Kernel {
      *
      * @return C|null
      */
-    public function loadModuleConfig(string $module): ?object {
+    public function loadModuleConfig(string $module): ?object
+    {
         if (array_key_exists($module, $this->moduleConfigs)) {
             return $this->moduleConfigs[$module];
         }
@@ -353,7 +377,8 @@ final class Kernel {
         return $this->moduleConfigs[$module] = $this->loafpan->expandVisitor($configClass, new ExpandingVisitor($configData, $configRoot));
     }
 
-    private function loadModules(): void {
+    private function loadModules(): void
+    {
         foreach ($this->config->resolvedModules as $module) {
             if (($module)::hasBoot()) {
                 $this->module($module)->boot();
@@ -369,7 +394,8 @@ final class Kernel {
      *
      * @return bool
      */
-    public function hasModule(string $module): bool {
+    public function hasModule(string $module): bool
+    {
         return isset($this->modules[$module]) || in_array($module, $this->config->resolvedModules, true);
     }
 
@@ -381,7 +407,8 @@ final class Kernel {
      *
      * @return M
      */
-    public function module(string $module): ModuleBase {
+    public function module(string $module): ModuleBase
+    {
         if (isset($this->modules[$module])) {
             return $this->modules[$module];
         }
@@ -395,7 +422,8 @@ final class Kernel {
         return $this->modules[$module] = $this->container->get($module);
     }
 
-    private function enableHomeCooking(): void {
+    private function enableHomeCooking(): void
+    {
         if ($this->config->isHomeCooking()) {
             HomeCooking::enable($this);
         }
@@ -408,9 +436,11 @@ final class Kernel {
      *
      * @return void
      */
-    private function loadApplication(string $application): void {
+    private function loadApplication(string $application): void
+    {
         $this->logger->debug('Loading application ' . $application);
         $this->application = $this->container->get($application);
+        $this->application->load();
     }
 
     /**
@@ -425,7 +455,8 @@ final class Kernel {
      * @see Facet::runtime()
      * @see Kernel::facet()
      */
-    public function runtime(string $facet): Runtime {
+    public function runtime(string $facet): Runtime
+    {
         return $this->facet($facet)->runtime();
     }
 
@@ -444,7 +475,8 @@ final class Kernel {
      * @return F
      * @see \Yeast\Facet
      */
-    public function facet(string $facet): Facet {
+    public function facet(string $facet): Facet
+    {
         if ($this->currentFacet === null) {
             if ( ! class_exists($facet)) {
                 throw new RuntimeException("Facet by name $facet couldn't be found");
@@ -464,35 +496,43 @@ final class Kernel {
         throw new RuntimeException("Facet of type " . get_class($this->currentFacet) . " already registered, can't use different facet of type " . $facet);
     }
 
-    public function getConfigDir(): string {
+    public function getConfigDir(): string
+    {
         return $this->configDir;
     }
 
-    public function getCacheDir(): string {
+    public function getCacheDir(): string
+    {
         return $this->cacheDir;
     }
 
-    public function getApplication(): Application {
+    public function getApplication(): Application
+    {
         return $this->application;
     }
 
-    public function getModules(): array {
+    public function getModules(): array
+    {
         return $this->modules;
     }
 
-    public function isProduction(): bool {
+    public function isProduction(): bool
+    {
         return $this->production;
     }
 
-    public function isDebug(): bool {
+    public function isDebug(): bool
+    {
         return ! $this->production;
     }
 
-    public function getLogger(): Logger {
+    public function getLogger(): Logger
+    {
         return $this->logger;
     }
 
-    private function getFacetConfig(string $name): array {
+    private function getFacetConfig(string $name): array
+    {
         return $this->loadConfigFile("facet/$name");
     }
 
@@ -501,7 +541,13 @@ final class Kernel {
      *
      * @return array<class-string<ModuleBase>>
      */
-    public function getResolvedModules(): array {
+    public function getResolvedModules(): array
+    {
         return $this->config->getResolvedModules();
+    }
+
+    public function getContainer(): Container
+    {
+        return $this->container;
     }
 }
