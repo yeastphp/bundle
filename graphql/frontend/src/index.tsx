@@ -2,6 +2,8 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import GraphiQL from 'graphiql';
 
+import "graphiql/graphiql.css"
+
 const App = () => (
     <GraphiQL
         fetcher={async graphQLParams => {
@@ -26,7 +28,7 @@ ReactDOM.render(<App/>, document.getElementById('root'));
 
 // Hot Module Replacement
 // @ts-ignore
-if (module.hot) {
+if (typeof module !== 'undefined' && module.hot) {
     // @ts-ignore
     module.hot.accept();
 }

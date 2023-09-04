@@ -7,6 +7,7 @@ use GraphQL\Type\Definition\NamedType;
 use GraphQL\Type\Definition\ObjectType;
 use GraphQL\Type\Definition\OutputType;
 use GraphQL\Type\Definition\Type;
+use GraphQL\Type\Definition\Type as GraphQLType;
 use phpDocumentor\Reflection\DocBlock;
 use phpDocumentor\Reflection\Types\Collection;
 use phpDocumentor\Reflection\Types\Object_;
@@ -20,7 +21,7 @@ class DoctrineCollectionTypeMapper implements RootTypeMapperInterface {
     public function __construct(private RootTypeMapperInterface $next, private RootTypeMapperFactoryContext $context) {
     }
 
-    public function toGraphQLOutputType(\phpDocumentor\Reflection\Type $type, ?OutputType $subType, $reflector, DocBlock $docBlockObj): OutputType {
+    public function toGraphQLOutputType(\phpDocumentor\Reflection\Type $type, ?OutputType $subType, $reflector, DocBlock $docBlockObj): OutputType&GraphQLType {
         if ( ! ($type instanceof Object_) || ($type->getFqsen()?->__toString() ?: "") !== '\Doctrine\Common\Collections\Collection') {
             return $this->next->toGraphQLOutputType($type, $subType, $reflector, $docBlockObj);
         }
@@ -66,11 +67,11 @@ class DoctrineCollectionTypeMapper implements RootTypeMapperInterface {
         return $this->cache[$typeName];
     }
 
-    public function toGraphQLInputType(\phpDocumentor\Reflection\Type $type, ?InputType $subType, string $argumentName, $reflector, DocBlock $docBlockObj): InputType {
+    public function toGraphQLInputType(\phpDocumentor\Reflection\Type $type, ?InputType $subType, string $argumentName, $reflector, DocBlock $docBlockObj): InputType&GraphQLType {
         return $this->next->toGraphQLInputType($type, $subType, $argumentName, $reflector, $docBlockObj);
     }
 
-    public function mapNameToType(string $typeName): NamedType {
+    public function mapNameToType(string $typeName): NamedType&GraphQLType {
         return $this->cache[$typeName] ?? $this->next->mapNameToType($typeName);
     }
 }
