@@ -36,4 +36,9 @@ class Header implements ParameterResolver {
     public function setParameterName(string $name): void {
         $this->name ??= $name;
     }
+
+    public function setParameterType(string $type): void
+    {
+        // TODO: Implement setParameterType() method.
+    }
 }

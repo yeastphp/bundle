@@ -37,4 +37,9 @@ class Field implements ParameterResolver {
 
         throw new \RuntimeException("Missing field " . $this->field);
     }
+
+    public function setParameterType(string $type): void
+    {
+        // TODO: Implement setParameterType() method.
+    }
 }

@@ -13,6 +13,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
 use Yeast\Http\Dispatcher;
 use Yeast\Kernel;
+use Yeast\Loafpan\Loafpan;
 use Yeast\Runtime;
 
 
@@ -33,7 +34,7 @@ class HttpRuntime implements Runtime
 
         if (php_sapi_name() === 'cli-server') {
             $filePath = $this->kernel->getApplicationDir() . '/public' . $request->getUri()->getPath();
-            if (file_exists($filePath) && ! (is_dir($filePath) || str_ends_with($filePath, '.php'))) {
+            if (file_exists($filePath) && !(is_dir($filePath) || str_ends_with($filePath, '.php'))) {
                 $this->logger->debug('CLI server used and file exists on ' . $filePath . ' delegating file transfer to PHP');
 
                 return false;
@@ -42,7 +43,7 @@ class HttpRuntime implements Runtime
 
         $response = $this->handleRequest($request);
 
-        if ( ! $this->emitter->emit($response)) {
+        if (!$this->emitter->emit($response)) {
             return false;
         }
 
@@ -52,9 +53,10 @@ class HttpRuntime implements Runtime
     public function handleRequest(ServerRequestInterface $request): ResponseInterface
     {
         $request = $request
-          ->withAttribute(ContainerInterface::class, $this->kernel->getContainer())
-          ->withAttribute(Container::class, $this->kernel->getContainer())
-          ->withAttribute(Kernel::class, $this->kernel);
+            ->withAttribute(ContainerInterface::class, $this->kernel->getContainer())
+            ->withAttribute(Container::class, $this->kernel->getContainer())
+            ->withAttribute(Kernel::class, $this->kernel)
+            ->withAttribute(Loafpan::class, $this->kernel->getContainer()->get(Loafpan::class));
 
         return $this->dispatcher->handle($request);
     }

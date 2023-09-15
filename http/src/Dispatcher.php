@@ -79,6 +79,7 @@ final class Dispatcher
             $controller = $this->container->get($action->controller);
             $callable   = [$controller, $action->method];
 
+
             $middlewareStack = array_merge($middlewareStack, $context->controller->middleware);
         }
 

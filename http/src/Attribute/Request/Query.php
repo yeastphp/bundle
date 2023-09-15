@@ -38,4 +38,9 @@ class Query implements ParameterResolver {
     public function setParameterName(string $name): void {
         $this->key ??= $name;
     }
+
+    public function setParameterType(string $type): void
+    {
+        // TODO: Implement setParameterType() method.
+    }
 }

@@ -430,6 +430,12 @@ class RouteCollector
                     $param = $attribute->newInstance();
                     $param->setParameterName($parameter->getName());
 
+                    $t = $parameter->getType();
+
+                    if ($t !== null && $t instanceof ReflectionNamedType) {
+                        $param->setParameterType($t->getName());
+                    }
+
                     $action->parameters[$parameter->getName()] = $param;
                     continue 2;
                 }
